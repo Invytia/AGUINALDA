@@ -99,10 +99,18 @@ hr{border:0;height:1px;margin:24px 0;background:linear-gradient(90deg,transparen
 .s-b{color:#111}.s-r{color:var(--red)}
 .hint{font-size:.8rem;color:var(--muted);font-style:italic;min-height:1.4em}
 
-body:not(.open) .card,body:not(.open) h1 span{animation-play-state:paused}
+body:not(.open) .card,body:not(.open) h1,body:not(.open) h1 span{animation-play-state:paused}
 h1{
   font-family:var(--display);font-weight:800;font-size:clamp(2.1rem,9.5vw,3.1rem);
   line-height:1.05;margin:10px 0 0;
+  color:#fff6e2;
+  text-shadow:0 0 3px #fff,0 0 10px rgba(255,240,210,.6),0 0 26px rgba(226,40,48,.95),0 0 56px rgba(226,40,48,.75),0 0 90px rgba(226,40,48,.45);
+  animation:flicker 7s linear 3.4s infinite;
+}
+@keyframes flicker{
+  0%,17%,23%,54%,58%,100%{opacity:1}
+  19%,21%{opacity:.55;text-shadow:0 0 2px #fff,0 0 8px rgba(226,40,48,.6)}
+  55.5%{opacity:.7;text-shadow:0 0 2px #fff,0 0 12px rgba(226,40,48,.7)}
 }
 h1 span{display:inline-block;opacity:0;transform:translateY(18px);animation:up .5s ease forwards}
 @keyframes up{to{opacity:1;transform:none}}
@@ -160,6 +168,20 @@ h2{font-family:var(--display);font-weight:600;font-size:1.35rem;margin-bottom:4p
 .maps-btn:hover{background:transparent;color:var(--cream);box-shadow:0 0 28px rgba(226,40,48,.55)}
 .maps-btn:active{transform:scale(.98)}
 .maps-btn:focus-visible{outline:2px solid var(--red);outline-offset:3px}
+/* ENTRADAS AL HACER SCROLL */
+.rv{opacity:0}
+.rv.in{opacity:1;animation:var(--a) .9s cubic-bezier(.2,.8,.2,1) backwards;animation-delay:var(--d,0s)}
+.rv-line{--a:r-line}.rv-blur{--a:r-blur}.rv-wipe{--a:r-wipe;animation-duration:1.2s}
+.rv-drop{--a:r-drop}.rv-zoom{--a:r-zoom}.rv-left{--a:r-left}.rv-right{--a:r-right}.rv-pop{--a:r-pop}
+.rv-wipe.in{opacity:1}
+@keyframes r-line{from{transform:scaleX(0)}}
+@keyframes r-blur{from{opacity:0;filter:blur(8px);transform:scale(1.06)}}
+@keyframes r-wipe{from{clip-path:inset(0 0 100% 0)}}
+@keyframes r-drop{from{opacity:0;transform:translateY(-90px) rotate(-220deg) scale(.6)}}
+@keyframes r-zoom{from{opacity:0;transform:scale(2.8);filter:blur(8px)}}
+@keyframes r-left{from{opacity:0;transform:translateX(-70px)}}
+@keyframes r-right{from{opacity:0;transform:translateX(70px)}}
+@keyframes r-pop{from{opacity:0;transform:scale(.55)}}
 /* ALL IN + BOTON */
 .allin{font-family:var(--display);font-weight:800;font-size:2.4rem;color:var(--red);letter-spacing:.02em;margin-top:2px}
 .allin em{font-style:normal;font-size:1.5rem;display:inline-block;animation:beat 2s infinite}
@@ -342,7 +364,7 @@ big.addEventListener('click', () => {
     gate.classList.add('out');
     document.body.classList.add('open');
     window.scrollTo(0, 0);
-    setTimeout(startJackpotWatch, 1400);
+    setTimeout(() => { startJackpotWatch(); startReveal(); }, 1400);
   }, 1500);
 });
 
@@ -443,6 +465,39 @@ function link() {
 link();
 $('#name').addEventListener('input', link);
 btn.addEventListener('click', () => burst(btn, 24));
+
+/* entradas al hacer scroll */
+const revealEls = [];
+function mark(el, kind, d = 0) {
+  el.classList.add('rv', 'rv-' + kind);
+  el.style.setProperty('--d', d + 's');
+  revealEls.push(el);
+}
+document.querySelectorAll('.frame hr').forEach(e => mark(e, 'line'));
+document.querySelectorAll('.frame h2, .frame .tag:not(#cdtag), .note, .foot, .call').forEach(e => mark(e, 'blur'));
+const poem = document.querySelector('.poem');
+poem.innerHTML = poem.innerHTML.split(/<br\s*\/?>/).map(l => `<span class="ln" style="display:block">${l.trim()}</span>`).join('');
+poem.querySelectorAll('.ln').forEach((e, i) => mark(e, i % 2 ? 'right' : 'left', i * 0.15));
+mark(document.querySelector('.when'), 'blur');
+mark(document.querySelector('.where'), 'blur', 0.2);
+mark(document.querySelector('.mapbox'), 'wipe');
+mark(document.querySelector('.maps-btn'), 'pop');
+document.querySelectorAll('.chip').forEach((e, i) => mark(e, 'drop', i * 0.25));
+mark(document.querySelector('.allin'), 'zoom');
+mark(document.querySelector('.name'), 'left');
+mark(document.querySelector('#confirm'), 'right', 0.15);
+function startReveal() {
+  const io = new IntersectionObserver(entries => entries.forEach(en => {
+    if (!en.isIntersecting) return;
+    const el = en.target;
+    io.unobserve(el);
+    el.classList.add('in');
+    el.addEventListener('animationend', ev => {
+      if (ev.target === el) el.classList.remove('rv', 'in');
+    });
+  }), { threshold: 0.3 });
+  revealEls.forEach(e => io.observe(e));
+}
 </script>
 </body>
 </html>
