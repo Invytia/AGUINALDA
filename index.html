@@ -168,6 +168,15 @@ h2{font-family:var(--display);font-weight:600;font-size:1.35rem;margin-bottom:4p
 .maps-btn:hover{background:transparent;color:var(--cream);box-shadow:0 0 28px rgba(226,40,48,.55)}
 .maps-btn:active{transform:scale(.98)}
 .maps-btn:focus-visible{outline:2px solid var(--red);outline-offset:3px}
+/* SONIDO */
+.snd{position:fixed;z-index:20;top:calc(14px + env(safe-area-inset-top,0px));right:14px;width:44px;height:44px;border-radius:50%;
+  background:rgba(5,5,5,.7);border:1px solid var(--line);color:var(--cream);font-size:1.2rem;cursor:pointer;
+  display:grid;place-items:center;opacity:0;visibility:hidden;transition:opacity .8s,background .2s,border-color .2s;backdrop-filter:blur(4px)}
+body.open .snd{opacity:1;visibility:visible}
+.snd:hover{background:rgba(226,40,48,.35);border-color:var(--red)}
+.snd:focus-visible{outline:2px solid var(--red);outline-offset:3px}
+.snd.on{animation:eq 1.6s ease-in-out infinite}
+@keyframes eq{50%{box-shadow:0 0 16px rgba(226,40,48,.7)}}
 /* ENTRADAS AL HACER SCROLL */
 .rv{opacity:0}
 .rv.in{opacity:1;animation:var(--a) .9s cubic-bezier(.2,.8,.2,1) backwards;animation-delay:var(--d,0s)}
@@ -222,6 +231,9 @@ h2{font-family:var(--display);font-weight:600;font-size:1.35rem;margin-bottom:4p
 <div class="bg" id="bg" aria-hidden="true"></div>
 <div class="glow" aria-hidden="true"></div>
 
+<audio id="song" src="assets/song.mp3" loop preload="auto"></audio>
+<button class="snd on" id="snd" aria-label="Silenciar música" title="Música">🔊</button>
+
 <section class="gate" id="gate">
   <p class="tag">Invitación privada</p>
   <button class="bigcard" id="bigcard" aria-label="Voltear la carta para abrir la invitación">
@@ -247,7 +259,7 @@ h2{font-family:var(--display);font-weight:600;font-size:1.35rem;margin-bottom:4p
 
   <p class="poem">
     La suerte está echada…<br>
-    No hay patos malos, ni ases que sean chicos.<br>
+    No hay patos malos, ni ases que hagan temblar.<br>
     Las cartas están sobre la mesa<br>
     y tu lugar está reservado.
   </p>
@@ -352,11 +364,35 @@ cards.forEach(c => c.addEventListener('click', () => {
     burst(c, 12);
   }
 }));
+/* música */
+const song = $('#song'), sndBtn = $('#snd');
+const VOL = 0.6;
+function startSong() {
+  song.volume = 0;
+  song.play().then(() => {
+    let v = 0;
+    const f = setInterval(() => {            /* fade-in de 2.5 s */
+      v = Math.min(VOL, v + VOL / 25);
+      song.volume = song.muted ? 0 : v;
+      if (v >= VOL) clearInterval(f);
+    }, 100);
+  }).catch(() => { sndBtn.textContent = '🔇'; sndBtn.classList.remove('on'); });
+}
+sndBtn.addEventListener('click', () => {
+  if (song.paused) { song.volume = VOL; song.play().catch(() => {}); song.muted = false; }
+  else song.muted = !song.muted;
+  const off = song.muted || song.paused;
+  sndBtn.textContent = off ? '🔇' : '🔊';
+  sndBtn.classList.toggle('on', !off);
+  sndBtn.setAttribute('aria-label', off ? 'Activar música' : 'Silenciar música');
+});
+
 /* entrada: carta volteada */
 const big = $('#bigcard'), gate = $('#gate');
 big.addEventListener('click', () => {
   if (big.classList.contains('flip')) return;
   big.classList.add('flip');
+  startSong();
   $('#gatehint').textContent = 'Bienvenido a la mesa';
   $('#gatehint').classList.remove('pulse');
   setTimeout(() => burst(big, 14), 450);
